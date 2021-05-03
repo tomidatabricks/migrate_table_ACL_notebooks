@@ -204,15 +204,22 @@ class table_ACLs_test_driver(dbclient):
 
 # COMMAND ----------
 
+dbutils.widgets.removeAll()
+dbutils.widgets.text("ClusterName","API_DBR_8_Table_ACL_Work_Leave_Me_Alone","1: ClusterName:")
+
+# COMMAND ----------
+
 url = dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiUrl().getOrElse(None) 
 token = dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiToken().getOrElse(None)
 clusterId = dbutils.notebook.entry_point.getDbutils().notebook().getContext().clusterId().getOrElse(None)
 client = table_ACLs_test_driver(token, url, is_verbose=False)
 
-TABLE_ACLS_CLUSTER_NAME='TomiACLExport'
+TABLE_ACLS_CLUSTER_NAME=dbutils.widgets.get("ClusterName")
 table_acl_clusterId = client.get_cluster_id_by_name(TABLE_ACLS_CLUSTER_NAME)
 
-NOTEBOOK_DIR="/Users/tomi.schumacher@databricks.com/ACL/"
+#NOTEBOOK_DIR="/Users/tomi.schumacher@databricks.com/ACL/"
+NOTEBOOK_DIR="/Repos/tomi.schumacher@databricks.com/migrate_table_ACL_notebooks/"
+
 
 def exec_notebook(notebook_name, notebook_params):
   print(f"\nExecuting {notebook_name}({notebook_params})...")
@@ -224,7 +231,6 @@ def exec_notebook(notebook_name, notebook_params):
 
 
 # COMMAND ----------
-
 
 
 
@@ -301,7 +307,7 @@ collected_diffs = diff.collect()
 
 print('='*80)
 if collected_diffs:
-  print(f"ERRORS : total number of differences: {size(collected_diffs)}")
+  print(f"ERRORS : total number of differences: {len(collected_diffs)}")
 else:
   print(f"SUCCESS : no differences found")
 print('='*80)
@@ -322,4 +328,5 @@ print('='*80)
 # MAGIC    Database = 'tomi_schumacher_adl_test_restricted'
 
 # COMMAND ----------
+
 

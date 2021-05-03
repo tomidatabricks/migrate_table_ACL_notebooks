@@ -99,13 +99,13 @@ CREATE FUNCTION tomi_schumacher_adl_test_restricted.testUDF AS
 
 -- TODO ownership export/import seems buggy
 ALTER DATABASE tomi_schumacher_adl_test_restricted
-OWNER TO `tomi.schumacher+noadmin@databricks.com`;
+OWNER TO `mwc+user2@databricks.com`;
 
 DENY ALL PRIVILEGES 
 ON DATABASE tomi_schumacher_adl_test_restricted TO users;
 
 GRANT SELECT, MODIFY 
-ON TABLE tomi_schumacher_adl_test_restricted.regions TO `tomi.schumacher+noadmin@databricks.com`;
+ON TABLE tomi_schumacher_adl_test_restricted.regions TO `mwc+user2@databricks.com`;
 
 GRANT SELECT
 ON VIEW tomi_schumacher_adl_test_restricted.north_regions TO `tomi-acl-test-group`;
@@ -158,82 +158,16 @@ ON ANONYMOUS FUNCTION TO `tomi-acl-test-group`;
 
 # COMMAND ----------
 
-# MAGIC %sql 
-# MAGIC 
-# MAGIC USE tomi_schumacher_adl_test_restricted;
-# MAGIC SHOW GRANT ON FUNCTION testudf;
-# MAGIC USE default;
+"""%sql 
+
+USE tomi_schumacher_adl_test_restricted;
+SHOW GRANT ON FUNCTION testudf;
+USE default;
+"""
 
 # COMMAND ----------
 
 # MAGIC %sql SHOW USER FUNCTIONS LIKE  tomi_schumacher_adl_test.`*`;
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC 
-# MAGIC USE default;
-# MAGIC DROP FUNCTION tomi_foo;
-# MAGIC CREATE FUNCTION tomi_foo AS 'org.apache.hadoop.hive.ql.udf.generic.GenericUDFAbs';
-# MAGIC 
-# MAGIC -- returns nothing
-# MAGIC --SHOW USER FUNCTIONS LIKE 'default.tomi_foo'; 
-# MAGIC 
-# MAGIC --returns one
-# MAGIC --SHOW USER FUNCTIONS LIKE 'tomi_foo'; 
-# MAGIC --SHOW USER FUNCTIONS LIKE tomi_foo; 
-# MAGIC --SHOW USER FUNCTIONS LIKE default.tomi_foo; 
-# MAGIC --SHOW USER FUNCTIONS LIKE default.`tomi_foo`;
-# MAGIC 
-# MAGIC -- returns 4
-# MAGIC --SHOW USER FUNCTIONS LIKE default.`*`;
-# MAGIC 
-# MAGIC -- returns + getargument
-# MAGIC --SHOW USER FUNCTIONS LIKE tomi_schumacher_adl_test_restricted.`*`;
-# MAGIC 
-# MAGIC -- only getargument
-# MAGIC SHOW USER FUNCTIONS LIKE tomi_schumacher_adl_test.`*`;
-
-# COMMAND ----------
-
-# MAGIC %sql SHOW USER FUNCTIONS tomi_foo
-
-# COMMAND ----------
-
-# MAGIC %sql SHOW USER FUNCTIONS LIKE tomi_foo;
-
-# COMMAND ----------
-
-# MAGIC %sql SHOW USER FUNCTIONS LIKE 'tomi_*';
-
-# COMMAND ----------
-
-# MAGIC %sql 
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC USE tomi_schumacher_adl_test;
-# MAGIC SHOW USER FUNCTIONS;
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC USE tomi_schumacher_adl_test_restricted;
-# MAGIC SHOW USER FUNCTIONS LIKE '*';
-
-# COMMAND ----------
-
-# MAGIC %sql DESCRIBE FUNCTION EXTENDED  tomi_schumacher_adl_test_restricted.getargument;
-
-# COMMAND ----------
-
-# MAGIC %sql DESCRIBE FUNCTION EXTENDED  getargument;
-
-# COMMAND ----------
-
-# MAGIC %sql SHOW GRANT ON VIEW tomi_schumacher_adl_test_restricted.north_regions;
-# MAGIC -- Principal ActionType ObjectType ObjectKey
 
 # COMMAND ----------
 
@@ -253,7 +187,12 @@ ON ANONYMOUS FUNCTION TO `tomi-acl-test-group`;
 
 # COMMAND ----------
 
-# MAGIC %sql SELECT NOW()
+# MAGIC %sql SHOW GRANT ON VIEW tomi_schumacher_adl_test_restricted.north_regions
 
 # COMMAND ----------
+
+# MAGIC %sql SHOW GRANT ON DATABASE tomi_schumacher_adl_test_restricted
+
+# COMMAND ----------
+
 
