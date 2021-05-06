@@ -1,12 +1,17 @@
 # Databricks notebook source
-# MAGIC %md #TestDBSetup
+# MAGIC %md #TestDBSetupGeneric
 # MAGIC 
-# MAGIC This notebook creates a couple of drops and creates a couple of
-# MAGIC databases, tables and view.
-# MAGIC It executes GRANT and DENY statements to configure Table ACLs
+# MAGIC This notebook that creates a database for testing the `Export_Table_ACLs` and `Import_Table_ACLs` notebooks.
 # MAGIC 
-# MAGIC In parameter **Skip Grant/Deny** configure whether GRANT and DENY statements will be 
-# MAGIC executed or not: This is used for the testing harness
+# MAGIC Paramaters:
+# MAGIC - **SQLCommands**  `<SQL COMMAND>`( `;` `<SQL COMMAND>`)* to be executed. Typically: Create Database, Table, View,
+# MAGIC   Grant, Deny, Alter Owner ...
+# MAGIC - **SkipGrantDenyAlterOwner** `True` or `False` if set to true Grant/Deny/Alter Owner commands will be skipped
+# MAGIC   this is used to generate the database without ACLs before importing the ACLs.
+# MAGIC 
+# MAGIC Pass in the same **SQLCommands** for both, set **Skip Grant/Deny/Alter Owner** to `True`for the import
+# MAGIC and to `False` for the export case.
+# MAGIC 
 # MAGIC 
 # MAGIC For this setup we assume the following users and groups exist:
 # MAGIC 
@@ -48,41 +53,16 @@
 
 # COMMAND ----------
 
-dbutils.widgets.removeAll()
-dbutils.widgets.text("SkipGrantDeny","False","1: Skip GRANT/DENY:")
+SQL_STATEMENTS_DEFAULT = """
 
-# COMMAND ----------
-
-import re
-
-skip_grant_deny = dbutils.widgets.get("SkipGrantDeny").lower() == "true"
-
-
-def execute_sql_statements(sqls):
-  # filter out SQL on comments
-  sqls = re.sub('--[^\n]*','',sqls,flags=re.MULTILINE)
-  for sql in sqls.split(sep=";"):
-    sql = sql.strip()
-    if sql:
-      if skip_grant_deny and re.search("(?i)^(GRANT|DENY)", sql):
-        print(f"/* SKIP>>\n{sql}\n<<SKIP */")
-      else: # execute the statement
-        print(f"{sql};")
-        spark.sql(sql)
-
-
-# COMMAND ----------
-
-execute_sql_statements("""
-
--- DB1
+-- Create Database 1 : tomi_schumacher_adl_test
 DROP DATABASE IF EXISTS tomi_schumacher_adl_test CASCADE;
 CREATE DATABASE tomi_schumacher_adl_test;
 
 CREATE TABLE tomi_schumacher_adl_test.table_a (a INT) USING DELTA;
 
 
--- DB2
+-- Create Database 2 : tomi_schumacher_adl_test_restricted
 DROP DATABASE IF EXISTS tomi_schumacher_adl_test_restricted CASCADE;
 CREATE DATABASE tomi_schumacher_adl_test_restricted;
 
@@ -97,12 +77,23 @@ CREATE FUNCTION tomi_schumacher_adl_test_restricted.testUDF AS
 'org.apache.hadoop.hive.ql.udf.generic.GenericUDFAbs';
 
 
--- TODO ownership export/import seems buggy
+-- Change Onwer 
 ALTER DATABASE tomi_schumacher_adl_test_restricted
 OWNER TO `mwc+user2@databricks.com`;
 
+ALTER TABLE tomi_schumacher_adl_test_restricted.regions
+OWNER TO `mwc+user2@databricks.com`;
+
+ALTER VIEW tomi_schumacher_adl_test_restricted.north_regions
+OWNER TO `mwc+user2@databricks.com`;
+
+
+-- Change Privileges 
 DENY ALL PRIVILEGES 
 ON DATABASE tomi_schumacher_adl_test_restricted TO users;
+
+-- ???? Do I need to Deny privileges on tables and views in database as well, or is this inherited ?
+
 
 GRANT SELECT, MODIFY 
 ON TABLE tomi_schumacher_adl_test_restricted.regions TO `mwc+user2@databricks.com`;
@@ -128,7 +119,40 @@ ON ANY FILE TO `tomi-acl-test-group`;
 GRANT SELECT 
 ON ANONYMOUS FUNCTION TO `tomi-acl-test-group`;
 
-""")
+"""
+
+# COMMAND ----------
+
+dbutils.widgets.removeAll()
+dbutils.widgets.text("SQLCommands",SQL_STATEMENTS_DEFAULT)
+dbutils.widgets.text("SkipGrantDenyAlterOwner","False")
+
+# COMMAND ----------
+
+import re
+
+sql_commands = dbutils.widgets.get("SQLCommands")
+skip_grant_deny_alter_owner = dbutils.widgets.get("SkipGrantDenyAlterOwner").lower() == "true"
+
+
+# COMMAND ----------
+
+def execute_sql_statements(sqls):
+  # filter out SQL on comments
+  sqls = re.sub('--[^\n]*','',sqls,flags=re.MULTILINE)
+  for sql in sqls.split(sep=";"):
+    sql = sql.strip()
+    if sql:
+      if skip_grant_deny_alter_owner and re.search("(?i)^(GRANT|DENY|ALTER)", sql): #TO add OWNER check part 
+        print(f"/* SKIP>>\n{sql}\n<<SKIP */")
+      else: # execute the statement
+        print(f"{sql};")
+        spark.sql(sql)
+
+
+# COMMAND ----------
+
+execute_sql_statements(sql_commands)
 
 # COMMAND ----------
 
@@ -171,7 +195,7 @@ USE default;
 
 # COMMAND ----------
 
-# MAGIC %sql SHOW GRANT `tomi.schumacher+noadmin@databricks.com` ON VIEW tomi_schumacher_adl_test_restricted.north_regions;
+# MAGIC %sql SHOW GRANT `mwc+user2@databricks.com` ON VIEW tomi_schumacher_adl_test_restricted.north_regions;
 
 # COMMAND ----------
 
@@ -183,15 +207,17 @@ USE default;
 
 # COMMAND ----------
 
-# MAGIC %sql SHOW GRANT `tomi-acl-test-group` ON ANY FILE
-
-# COMMAND ----------
-
 # MAGIC %sql SHOW GRANT ON VIEW tomi_schumacher_adl_test_restricted.north_regions
 
 # COMMAND ----------
 
 # MAGIC %sql SHOW GRANT ON DATABASE tomi_schumacher_adl_test_restricted
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC 
+# MAGIC SELECT * FROM tomi_schumacher_adl_test_restricted.north_regions
 
 # COMMAND ----------
 

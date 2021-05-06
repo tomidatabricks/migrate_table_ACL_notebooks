@@ -206,6 +206,7 @@ class table_ACLs_test_driver(dbclient):
 
 dbutils.widgets.removeAll()
 dbutils.widgets.text("ClusterName","API_DBR_8_Table_ACL_Work_Leave_Me_Alone","1: ClusterName:")
+dbutils.widgets.text("TestDBSetupNotebook","API_DBR_8_Table_ACL_Work_Leave_Me_Alone","2: TestDBSetupNotebook:")
 
 # COMMAND ----------
 
@@ -226,6 +227,7 @@ def exec_notebook(notebook_name, notebook_params):
   res = client.execute_notebook_on_cluster_sync(
     table_acl_clusterId, NOTEBOOK_DIR+notebook_name, notebook_params
   )  
+  print(res['run_page_url'])
   return res
 
 
@@ -234,39 +236,37 @@ def exec_notebook(notebook_name, notebook_params):
 
 
 
-exec_notebook("TestDBSetup", { 
-  'SkipGrantDeny' : 'False'
+exec_notebook("TestDBSetupGeneric", { 
+  'SkipGrantDenyAlterOwner' : 'False'
 })
 
 exec_notebook("TestExportRawTableACLs", { 
-  'Databases' : 'tomi_schumacher_adl_test, tomi_schumacher_adl_test_restricted'
+  'Databases' : 'db_acl_test,db_acl_test_restricted'
   ,'OutputPath' : 'dbfs:/user/hive/warehouse/tomi_table_acls_raw_before.delta'
 })
 
 exec_notebook("Export_Table_ACLs", { 
-  'Databases' : 'tomi_schumacher_adl_test, tomi_schumacher_adl_test_restricted'
+  'Databases' : 'db_acl_test,db_acl_test_restricted'
   ,'OutputPath' : 'dbfs:/user/hive/warehouse/tomi_table_acl_perms.json'
-  ,'OuputFormat' : 'JSON'
 })
 
 # recreate the original database without table ACLs, so they can be re-imported
-exec_notebook("TestDBSetup", { 
-  'SkipGrantDeny' : 'True'
+exec_notebook("TestDBSetupGeneric", { 
+  'SkipGrantDenyAlterOwner' : 'True'
 })
 
 exec_notebook("TestExportRawTableACLs", { 
-  'Databases' : 'tomi_schumacher_adl_test, tomi_schumacher_adl_test_restricted'
+  'Databases' : 'db_acl_test,db_acl_test_restricted'
   ,'OutputPath' : 'dbfs:/user/hive/warehouse/tomi_table_acls_raw_wihout_acls.delta'
 })
 
 
 exec_notebook("Import_Table_ACLs", { 
   'ImportPath' : 'dbfs:/user/hive/warehouse/tomi_table_acl_perms.json'
-  ,'ImportPath' : 'JSON'
 })
 
 exec_notebook("TestExportRawTableACLs", { 
-  'Databases' : 'tomi_schumacher_adl_test, tomi_schumacher_adl_test_restricted'
+  'Databases' : 'db_acl_test,db_acl_test_restricted'
   ,'OutputPath' : 'dbfs:/user/hive/warehouse/tomi_table_acls_raw_after_import.delta'
 })
 
