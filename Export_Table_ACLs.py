@@ -51,19 +51,37 @@ def get_database_names():
   return database_names
 
 def create_grants_df(database_name: str,object_type: str, object_key: str) -> List[str]:
-  if object_type in ["CATALOG", "ANY FILE", "ANONYMOUS FUNCTION"]: #without object key
-     grants_df = (
-       spark.sql(f"SHOW GRANT ON {object_type}")
-       .groupBy("ObjectType","ObjectKey","Principal").agg(sf.collect_set("ActionType").alias("ActionTypes"))
-       .selectExpr("NULL AS Database","Principal","ActionTypes","ObjectType","ObjectKey","Now() AS ExportTimestamp")
-     )
-  else: 
-    grants_df = (
-      spark.sql(f"SHOW GRANT ON {object_type} {object_key}")
-      .filter(sf.col("ObjectType") == f"{object_type}")
-      .groupBy("ObjectType","ObjectKey","Principal").agg(sf.collect_set("ActionType").alias("ActionTypes"))
-      .selectExpr(f"'{database_name}' AS Database","Principal","ActionTypes","ObjectType","ObjectKey","Now() AS ExportTimestamp")
-    )  
+  try:
+    if object_type in ["CATALOG", "ANY FILE", "ANONYMOUS FUNCTION"]: #without object key
+       grants_df = (
+         spark.sql(f"SHOW GRANT ON {object_type}")
+         .groupBy("ObjectType","ObjectKey","Principal").agg(sf.collect_set("ActionType").alias("ActionTypes"))
+         .selectExpr("NULL AS Database","Principal","ActionTypes","ObjectType","ObjectKey","Now() AS ExportTimestamp")
+       )
+    else: 
+      grants_df = (
+        spark.sql(f"SHOW GRANT ON {object_type} {object_key}")
+        .filter(sf.col("ObjectType") == f"{object_type}")
+        .groupBy("ObjectType","ObjectKey","Principal").agg(sf.collect_set("ActionType").alias("ActionTypes"))
+        .selectExpr(f"'{database_name}' AS Database","Principal","ActionTypes","ObjectType","ObjectKey","Now() AS ExportTimestamp")
+      )  
+  except Exception as e:
+    # In case we get any kind of exception, create a special entry in the grants table, with principal 'ERROR_!!!' and invalid object type prefix 'ERROR_!!!'
+    print(f"ERROR <{e}> of type {type(e)}")
+    
+    database_value = f"'ERROR_!!!_{database_name}'" if database_name else "NULL"
+    object_key_value = f"'ERROR_!!!_{object_key}'" if object_key else "NULL"
+    object_type_value = f"'ERROR_!!!_{object_type}'" if object_type else "NULL" # Import ignores this object type
+    
+    grants_df = spark.sql(f"""SELECT 
+        array('got error <{e}> of type {type(e)}') AS ActionTypes, 
+        {database_value} AS Database, 
+        Now() AS ExportTimestamp, 
+        {object_key_value} AS ObjectKey, 
+        {object_type_value} AS ObjectType, 
+        'ERROR_!!!' AS Principal
+     """)
+
   return grants_df
   
 
@@ -156,11 +174,16 @@ print(f"{datetime.datetime.now()} writing table ACLs to {output_path}")
 
 # COMMAND ----------
 
+# DBTITLE 1,Exported Table ACLs
 display(spark.read.format("json").load(output_path)) 
 
 # COMMAND ----------
 
 print(output_path)
+
+# COMMAND ----------
+
+
 
 # COMMAND ----------
 
