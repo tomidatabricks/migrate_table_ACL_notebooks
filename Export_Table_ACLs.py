@@ -65,8 +65,9 @@ def create_grants_df(database_name: str,object_type: str, object_key: str) -> Li
         .groupBy("ObjectType","ObjectKey","Principal").agg(sf.collect_set("ActionType").alias("ActionTypes"))
         .selectExpr(f"'{database_name}' AS Database","Principal","ActionTypes","ObjectType","ObjectKey","Now() AS ExportTimestamp")
       )  
-  except Exception as e:
+  except:
     # In case we get any kind of exception, create a special entry in the grants table, with principal 'ERROR_!!!' and invalid object type prefix 'ERROR_!!!'
+    e = sys.exc_info()[0]
     print(f"ERROR <{e}> of type {type(e)}")
     
     database_value = f"'ERROR_!!!_{database_name}'" if database_name else "NULL"
