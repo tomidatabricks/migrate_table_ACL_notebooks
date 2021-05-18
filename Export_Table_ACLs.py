@@ -67,15 +67,15 @@ def create_grants_df(database_name: str,object_type: str, object_key: str) -> Li
       )  
   except:
     # In case we get any kind of exception, create a special entry in the grants table, with principal 'ERROR_!!!' and invalid object type prefix 'ERROR_!!!'
-    e = sys.exc_info()[0]
-    print(f"ERROR <{e}> of type {type(e)}")
+    error_message = f"ERROR!!! : {sys.exc_info()[0]},  {sys.exc_info()}" #TODO collect more info, e.g. stack trace
+    print(error_message)
     
     database_value = f"'ERROR_!!!_{database_name}'" if database_name else "NULL"
     object_key_value = f"'ERROR_!!!_{object_key}'" if object_key else "NULL"
     object_type_value = f"'ERROR_!!!_{object_type}'" if object_type else "NULL" # Import ignores this object type
     
     grants_df = spark.sql(f"""SELECT 
-        array('got error <{e}> of type {type(e)}') AS ActionTypes, 
+        array('{error_message}') AS ActionTypes, 
         {database_value} AS Database, 
         Now() AS ExportTimestamp, 
         {object_key_value} AS ObjectKey, 
