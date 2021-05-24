@@ -39,7 +39,8 @@ if not dbutils.widgets.get("OutputPath").startswith("dbfs:/"):
 # DBTITLE 1,Define Export Logic
 import pyspark.sql.functions as sf
 from typing import Callable, Iterator, Union, Optional, List
-import datetime;
+import datetime
+import sys
 
 def get_database_names():
   database_names = []
