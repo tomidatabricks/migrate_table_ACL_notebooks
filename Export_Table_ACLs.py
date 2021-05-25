@@ -76,12 +76,12 @@ def create_grants_df(database_name: str,object_type: str, object_key: str) -> Li
     object_type_value = f"'ERROR_!!!_{object_type}'" if object_type else "NULL" # Import ignores this object type
     
     grants_df = spark.sql(f"""SELECT 
-        array("ERROR_!!!","{sys.exc_info()[0]}") AS ActionTypes, 
         {database_value} AS Database, 
-        Now() AS ExportTimestamp, 
-        {object_key_value} AS ObjectKey, 
+        'ERROR_!!!' AS Principal,
+        array("ERROR_!!!","{sys.exc_info()[0]}") AS ActionTypes, 
         {object_type_value} AS ObjectType, 
-        'ERROR_!!!' AS Principal
+        {object_key_value} AS ObjectKey, 
+        Now() AS ExportTimestamp
      """)
 
   return grants_df
