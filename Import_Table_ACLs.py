@@ -41,6 +41,7 @@ display(spark.read.format("JSON").load(dbutils.widgets.get("InputPath")))
 import datetime
 import pyspark.sql.functions as sf
 from typing import Callable, Iterator, Union, Optional, List
+import sys
 
 
 def generate_table_acls_command(action_types, object_type, object_key, principal, alter_owner=True):

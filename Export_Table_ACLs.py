@@ -67,8 +67,14 @@ def create_grants_df(database_name: str,object_type: str, object_key: str) -> Li
         .selectExpr(f"'{database_name}' AS Database","Principal","ActionTypes","ObjectType","ObjectKey","Now() AS ExportTimestamp")
       )  
   except:
-    # In case we get any kind of exception, create a special entry in the grants table, with principal 'ERROR_!!!' and invalid object type prefix 'ERROR_!!!'
-    error_message = f"ERROR!!! : {sys.exc_info()[0]},  {sys.exc_info()}" #TODO collect more info, e.g. stack trace
+    
+    msg_lines = str(sys.exc_info()[1]).split("\n")
+    if len(msg_lines) <= 2:
+      short_message = " ".join(msg_lines)
+    else:
+      short_message = " ".join(msg_lines[:2])   
+    error_message = f"ERROR!!! : exception class {sys.exc_info()[0]},  message: {short_message}" #TODO collect more info, e.g. stack trace
+
     print(error_message)
     
     database_value = f"'ERROR_!!!_{database_name}'" if database_name else "NULL"
@@ -78,7 +84,7 @@ def create_grants_df(database_name: str,object_type: str, object_key: str) -> Li
     grants_df = spark.sql(f"""SELECT 
         {database_value} AS Database, 
         'ERROR_!!!' AS Principal,
-        array("ERROR_!!!","{sys.exc_info()[0]}") AS ActionTypes, 
+        array("{error_message}") AS ActionTypes, 
         {object_type_value} AS ObjectType, 
         {object_key_value} AS ObjectKey, 
         Now() AS ExportTimestamp
