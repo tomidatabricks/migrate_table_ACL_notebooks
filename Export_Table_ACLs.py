@@ -68,12 +68,14 @@ def create_grants_df(database_name: str,object_type: str, object_key: str) -> Li
       )  
   except:
     
+    msg_context = f"context: database_name: {database_name}, object_type: {object_type}, object_key: {object_key}"
+    
     msg_lines = str(sys.exc_info()[1]).split("\n")
     if len(msg_lines) <= 2:
       short_message = " ".join(msg_lines)
     else:
       short_message = " ".join(msg_lines[:2])   
-    error_message = f"ERROR!!! : exception class {sys.exc_info()[0]},  message: {short_message}" #TODO collect more info, e.g. stack trace
+    error_message = f"ERROR!!! : exception class {sys.exc_info()[0]},  message: {short_message}, {msg_context}" #TODO collect more info, e.g. stack trace
 
     print(error_message)
     
