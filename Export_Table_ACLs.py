@@ -42,6 +42,33 @@ from typing import Callable, Iterator, Union, Optional, List
 import datetime
 import sys
 
+def create_error_grants_df(sys_exec_info_res, database_name: str,object_type: str, object_key: str):
+  msg_context = f"context: database_name: {database_name}, object_type: {object_type}, object_key: {object_key}"
+
+  msg_lines = str(sys_exec_info_res[1]).split("\n")
+  if len(msg_lines) <= 2:
+    short_message = " ".join(msg_lines)
+  else:
+    short_message = " ".join(msg_lines[:2])   
+  error_message = f"ERROR!!! : exception class {sys_exec_info_res[0]},  message: {short_message}, {msg_context}" #TODO collect more info, e.g. stack trace
+
+  print(error_message)
+
+  database_value = f"'ERROR_!!!_{database_name}'" if database_name else "NULL"
+  object_key_value = f"'ERROR_!!!_{object_key}'" if object_key else "NULL"
+  object_type_value = f"'ERROR_!!!_{object_type}'" if object_type else "NULL" # Import ignores this object type
+
+  grants_df = spark.sql(f"""SELECT 
+      {database_value} AS Database, 
+      'ERROR_!!!' AS Principal,
+      array("{error_message}") AS ActionTypes, 
+      {object_type_value} AS ObjectType, 
+      {object_key_value} AS ObjectKey, 
+      Now() AS ExportTimestamp
+   """)  
+
+  return grants_df
+
 def get_database_names():
   database_names = []
   for db in spark.sql("show databases").collect():
@@ -51,7 +78,7 @@ def get_database_names():
       database_names.append(db.namespace)
   return database_names
 
-def create_grants_df(database_name: str,object_type: str, object_key: str) -> List[str]:
+def create_grants_df(database_name: str,object_type: str, object_key: str):
   try:
     if object_type in ["CATALOG", "ANY FILE", "ANONYMOUS FUNCTION"]: #without object key
        grants_df = (
@@ -66,32 +93,9 @@ def create_grants_df(database_name: str,object_type: str, object_key: str) -> Li
         .groupBy("ObjectType","ObjectKey","Principal").agg(sf.collect_set("ActionType").alias("ActionTypes"))
         .selectExpr(f"'{database_name}' AS Database","Principal","ActionTypes","ObjectType","ObjectKey","Now() AS ExportTimestamp")
       )  
-  except:
+  except:  
+    grants_df = create_error_grants_df(sys.exc_info(), database_name, object_type, object_key)
     
-    msg_context = f"context: database_name: {database_name}, object_type: {object_type}, object_key: {object_key}"
-    
-    msg_lines = str(sys.exc_info()[1]).split("\n")
-    if len(msg_lines) <= 2:
-      short_message = " ".join(msg_lines)
-    else:
-      short_message = " ".join(msg_lines[:2])   
-    error_message = f"ERROR!!! : exception class {sys.exc_info()[0]},  message: {short_message}, {msg_context}" #TODO collect more info, e.g. stack trace
-
-    print(error_message)
-    
-    database_value = f"'ERROR_!!!_{database_name}'" if database_name else "NULL"
-    object_key_value = f"'ERROR_!!!_{object_key}'" if object_key else "NULL"
-    object_type_value = f"'ERROR_!!!_{object_type}'" if object_type else "NULL" # Import ignores this object type
-    
-    grants_df = spark.sql(f"""SELECT 
-        {database_value} AS Database, 
-        'ERROR_!!!' AS Principal,
-        array("{error_message}") AS ActionTypes, 
-        {object_type_value} AS ObjectType, 
-        {object_key_value} AS ObjectKey, 
-        Now() AS ExportTimestamp
-     """)
-
   return grants_df
   
 
@@ -128,24 +132,28 @@ def create_table_ACLSs_df_for_databases(database_names: List[str]):
       create_grants_df(database_name, "DATABASE", database_name)
     )
     
-    tables_and_views_rows = spark.sql(
-      f"SHOW TABLES IN {database_name}"
-    ).filter(sf.col("isTemporary") == False).collect()
-    
-    print(f"{datetime.datetime.now()} working on database {database_name} with {len(tables_and_views_rows)} tables and views")
-    for table_row in tables_and_views_rows:
-      
-      # TABLE, VIEW
+    try
+      tables_and_views_rows = spark.sql(
+        f"SHOW TABLES IN {database_name}"
+      ).filter(sf.col("isTemporary") == False).collect()
+
+      print(f"{datetime.datetime.now()} working on database {database_name} with {len(tables_and_views_rows)} tables and views")
+      for table_row in tables_and_views_rows:
+
+        # TABLE, VIEW
+        combined_grant_dfs = combined_grant_dfs.unionAll(
+          create_grants_df(database_name, "TABLE", f"{table_row.database}.{table_row.tableName}")
+        )
+    except:  
+      # error in SHOW TABLES IN database_name, errors in create_grants_df have already been catched
       combined_grant_dfs = combined_grant_dfs.unionAll(
-        create_grants_df(database_name, "TABLE", f"{table_row.database}.{table_row.tableName}")
+        create_error_grants_df(sys.exc_info(), database_name ,"DATABASE", database_name)
       )
-   
+     
     #TODO ADD USER FUNCTION - not supported in SQL Analytics, so this can wait a bit
     # ... SHOW USER FUNCTIONS LIKE  <my db>.`*`;
     #. function_row['function']   ... nah does not seem to work
-    
-  #combined_grant_dfs = combined_grant_dfs.sort("")
-      
+          
   return combined_grant_dfs
 
 
@@ -212,6 +220,10 @@ else:
 print(exit_JSON_string)
 
 dbutils.notebook.exit(exit_JSON_string) 
+
+# COMMAND ----------
+
+
 
 # COMMAND ----------
 
