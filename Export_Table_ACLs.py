@@ -50,13 +50,13 @@ def create_error_grants_df(sys_exec_info_res, database_name: str,object_type: st
     short_message = " ".join(msg_lines)
   else:
     short_message = " ".join(msg_lines[:2])   
-  error_message = f"ERROR!!! : exception class {sys_exec_info_res[0]},  message: {short_message}, {msg_context}" #TODO collect more info, e.g. stack trace
+  error_message = f"ERROR!!! : exception class {sys_exec_info_res[0]},  message: {short_message}, {msg_context}".replace('"',"'")
 
   print(error_message)
 
-  database_value = f"'ERROR_!!!_{database_name}'" if database_name else "NULL"
-  object_key_value = f"'ERROR_!!!_{object_key}'" if object_key else "NULL"
-  object_type_value = f"'ERROR_!!!_{object_type}'" if object_type else "NULL" # Import ignores this object type
+  database_value = f"'ERROR_!!!_{database_name}'".replace('"',"'") if database_name else "NULL"
+  object_key_value = f"'ERROR_!!!_{object_key}'".replace('"',"'") if object_key else "NULL"
+  object_type_value = f"'ERROR_!!!_{object_type}'".replace('"',"'") if object_type else "NULL" # Import ignores this object type
 
   grants_df = spark.sql(f"""SELECT 
       {database_value} AS Database, 
