@@ -25,21 +25,34 @@
 # MAGIC Unsupported Object types:
 # MAGIC - User Function: Currently in Databricks SQL not supported - will add support later
 # MAGIC 
-# MAGIC JSON File format:
+# MAGIC JSON File format: Line of JSON objects, gzipped
 # MAGIC 
 # MAGIC - written as `.coalesce(1).format("JSON").option("compression","gzip")`
-# MAGIC - each line contains a JSON object with the keys 
+# MAGIC - each line contains a JSON object with the keys:
 # MAGIC   - `Database`: string
 # MAGIC   - `Principal`: string
 # MAGIC   - `ActionTypes`: list of action strings: 
 # MAGIC   - `ObjectType`: `(ANONYMOUS_FUNCTION|ANY_FILE|CATALOG$|DATABASE|TABLE|ERROR_!!!_<type>)` (view are treated as tables)
 # MAGIC   - `ObjectKey`: string
 # MAGIC   - `ExportTimestamp`: string
-# MAGIC - error lines contain
+# MAGIC - error lines contains:
 # MAGIC   - the special `Principal` `ERROR_!!!` 
 # MAGIC   - `ActionTypes` contains one element: the error message, starting with `ERROR!!! :`
 # MAGIC   - `Database`, `ObjectType`, `ObjectKey` are all prefixed with `ERROR_!!!_`
 # MAGIC - error lines are ignored by the Import_Table_ACLs 
+# MAGIC 
+# MAGIC The JSON file is written as table, because on a cluster with Table ACLS activated, files cannot be written directly.
+# MAGIC The output path will contain other files and diretories, starting with `_`, which can be ignored.
+# MAGIC 
+# MAGIC 
+# MAGIC What to do if exported JSON contains errors (the notebook returns `num_errors` > 0):
+# MAGIC - If there are only a few errors ( e.g. less then 1% or less then dozen)
+# MAGIC   - proceed with the import (any error lines will be ignored)
+# MAGIC   - For each error, the object type, name and error message is included so the cause can be investigated
+# MAGIC     - in most cases, it turns out that those are broken or not used tables or views
+# MAGIC - If there are many errors
+# MAGIC   - Try executing some `SHOW GRANT` commands on the same cluster using the same user, there might be a underlying problem
+# MAGIC   - review the errors and investiage
 # MAGIC 
 # MAGIC 
 # MAGIC Disclaimer: This notebook is still needs some more testing, check back soon as fixes might have been added.
