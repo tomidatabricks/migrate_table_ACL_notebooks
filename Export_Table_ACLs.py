@@ -132,7 +132,7 @@ def create_table_ACLSs_df_for_databases(database_names: List[str]):
       create_grants_df(database_name, "DATABASE", database_name)
     )
     
-    try
+    try:
       tables_and_views_rows = spark.sql(
         f"SHOW TABLES IN {database_name}"
       ).filter(sf.col("isTemporary") == False).collect()
