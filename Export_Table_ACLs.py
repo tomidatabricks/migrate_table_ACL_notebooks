@@ -109,6 +109,9 @@ def create_table_ACLSs_df_for_databases(database_names: List[str]):
     include_catalog = True
   else:
     include_catalog = False
+    
+  num_databases_processed = len(database_names)
+  num_tables_or_views_processed = 0
 
   # ANONYMOUS FUNCTION
   combined_grant_dfs = create_grants_df(None, "ANONYMOUS FUNCTION", None)
@@ -138,6 +141,8 @@ def create_table_ACLSs_df_for_databases(database_names: List[str]):
       ).filter(sf.col("isTemporary") == False).collect()
 
       print(f"{datetime.datetime.now()} working on database {database_name} with {len(tables_and_views_rows)} tables and views")
+      num_tables_or_views_processed = num_tables_or_views_processed + len(tables_and_views_rows)
+     
       for table_row in tables_and_views_rows:
 
         # TABLE, VIEW
@@ -149,12 +154,13 @@ def create_table_ACLSs_df_for_databases(database_names: List[str]):
       combined_grant_dfs = combined_grant_dfs.unionAll(
         create_error_grants_df(sys.exc_info(), database_name ,"DATABASE", database_name)
       )
+      
      
     #TODO ADD USER FUNCTION - not supported in SQL Analytics, so this can wait a bit
     # ... SHOW USER FUNCTIONS LIKE  <my db>.`*`;
     #. function_row['function']   ... nah does not seem to work
           
-  return combined_grant_dfs
+  return combined_grant_dfs, num_databases_processed, num_tables_or_views_processed
 
 
 # COMMAND ----------
@@ -171,8 +177,9 @@ else:
   print(f"Exporting the following databases: {databases}")
 
 
-table_ACLs_df = create_table_ACLSs_df_for_databases(databases)
+table_ACLs_df,num_databases_processed, num_tables_or_views_processed = create_table_ACLSs_df_for_databases(databases)
 
+print(f"{datetime.datetime.now()} total number processed: databases: {num_databases_processed}, tables or views: {num_tables_or_views_processed}")
 print(f"{datetime.datetime.now()} writing table ACLs to {output_path}")
 
 # with table ACLS active, I direct write to DBFS is not allowed, so we store
