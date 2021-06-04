@@ -7,15 +7,40 @@
 # MAGIC - Databases: [Optional] comma separated list of databases to be exported, if empty all databases will be exported
 # MAGIC - OutputPath: Path to write the exported file to 
 # MAGIC 
+# MAGIC Returns: (notebook.exit())
+# MAGIC - `{ "total_num_acls": <int>, "num_errors": <int> }` 
+# MAGIC   - total_num_acls : valid ACL entries int the exported JSON
+# MAGIC   - num_errors : error entries in the exported JSON, principal is set to `ERROR_!!!` and object_key and object_value are prefixed with `ERROR_!!!`
+# MAGIC 
 # MAGIC Execution: **Run the notebook on a cluster with Table ACL's enabled as a user who is an admin** 
 # MAGIC 
-# MAGIC Supportes ACLs for Object types:
+# MAGIC Supported Object types:
 # MAGIC - Catalog: included if all databases are exported, not included if databases to be exported are specified
 # MAGIC   - Database: included
 # MAGIC     - Table: included
 # MAGIC     - View: included
 # MAGIC - Anonymous Function: included (testing pending)
 # MAGIC - Any File: included
+# MAGIC 
+# MAGIC Unsupported Object types:
+# MAGIC - User Function: Currently in Databricks SQL not supported - will add support later
+# MAGIC 
+# MAGIC JSON File format:
+# MAGIC 
+# MAGIC - written as `.coalesce(1).format("JSON").option("compression","gzip")`
+# MAGIC - each line contains a JSON object with the keys 
+# MAGIC   - `Database`: string
+# MAGIC   - `Principal`: string
+# MAGIC   - `ActionTypes`: list of action strings: 
+# MAGIC   - `ObjectType`: `(ANONYMOUS_FUNCTION|ANY_FILE|CATALOG$|DATABASE|TABLE|ERROR_!!!_<type>)` (view are treated as tables)
+# MAGIC   - `ObjectKey`: string
+# MAGIC   - `ExportTimestamp`: string
+# MAGIC - error lines contain
+# MAGIC   - the special `Principal` `ERROR_!!!` 
+# MAGIC   - `ActionTypes` contains one element: the error message, starting with `ERROR!!! :`
+# MAGIC   - `Database`, `ObjectType`, `ObjectKey` are all prefixed with `ERROR_!!!_`
+# MAGIC - error lines are ignored by the Import_Table_ACLs 
+# MAGIC 
 # MAGIC 
 # MAGIC Disclaimer: This notebook is still needs some more testing, check back soon as fixes might have been added.
 
@@ -219,10 +244,7 @@ totals_df = (spark.read
 
 res_rows = totals_df.collect()
 
-if len(res_rows) == 1:
-  exit_JSON_string = '{ "total_num_acls": '+str(res_rows[0]["total_num_acls"])+', "num_errors": '+str(res_rows[0]["num_errors"])+' }'
-else:
-  exit_JSON_string = '{ "total_num_acls": -1, "num_errors": -1 }'
+exit_JSON_string = '{ "total_num_acls": '+str(res_rows[0]["total_num_acls"])+', "num_errors": '+str(res_rows[0]["num_errors"])+' }'
 
 print(exit_JSON_string)
 
