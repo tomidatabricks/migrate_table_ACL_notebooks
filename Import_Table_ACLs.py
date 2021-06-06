@@ -120,7 +120,7 @@ def generate_table_acls_commands(table_ACLs_df, commented: bool=True, alter_owne
     
     if row["Principal"] == "ERROR_!!!":
       num_error_entries_acls = num_error_entries_acls + 1
-    else
+    else:
       total_num_acls = total_num_acls + 1
    
       
