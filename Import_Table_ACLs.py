@@ -187,7 +187,9 @@ if len(error_causing_sqls) == 0:
   print("No SQL errors")
 else:
   print(f"Number of SQL errors: {len(error_causing_sqls)}\n\n")
-  print(json.dumps(error_causing_sqls, indent=2))
+  l = [ json.dumps(error_causing_sqls, indent=2) for o in error_causing_sqls ]
+  print("\n".join(l))
+
 
 # COMMAND ----------
 
