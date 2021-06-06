@@ -183,11 +183,11 @@ exit_JSON_string = f"""{{
 # COMMAND ----------
 
 # DBTITLE 1,Error causing SQL messages and error messages:
-if len(num_error_entries_acls) == 0:
+if len(error_causing_sqls) == 0:
   print("No SQL errors")
 else:
-  print(f"Number of SQL errors: {len(num_error_entries_acls)}\n\n")
-  print(json.dumps(num_error_entries_acls, indent=2))
+  print(f"Number of SQL errors: {len(error_causing_sqls)}\n\n")
+  print(json.dumps(error_causing_sqls, indent=2))
 
 # COMMAND ----------
 
