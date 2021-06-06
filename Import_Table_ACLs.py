@@ -172,12 +172,12 @@ num_sucessfully_executed, num_execution_errors, error_causing_sqls = execute_sql
 #  - num_execution_errors : valid ACL entries that caused an error when executing
 #  - num_error_entries_acls : error entries in the imported JSON ignored, principal is set to `ERROR_!!!` and object_key and object_value are prefixed with `ERROR_!!!`
 
-exit_JSON_string = f'''{ 
+exit_JSON_string = f"""{{ 
   "total_num_acls":  {total_num_acls}
   ,"num_sucessfully_executed": {num_sucessfully_executed}
   ,"num_execution_errors": {num_execution_errors}
   ,"num_error_entries_acls": {num_error_entries_acls}
-}'''
+}}"""
 
 
 # COMMAND ----------
